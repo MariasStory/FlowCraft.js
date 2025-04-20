@@ -1,4 +1,3 @@
-```markdown
 # FlowCraft.js API Reference
 
 This document provides a detailed reference for the FlowCraft.js API.
