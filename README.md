@@ -38,31 +38,6 @@ It aims for a sweet spot – more structured than raw `async/await`, but less op
 
 ## 🛠️ Installation
 
-**NPM / Yarn:**
-
-```bash
-npm install flowcraft-js # Or yarn add flowcraft-js
-```
-
-```javascript
-// ES Modules
-import FlowCraft from 'flowcraft-js';
-// CommonJS
-const FlowCraft = require('flowcraft-js');
-```
-
-**CDN / Browser:**
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/flowcraft-js@latest/dist/flowcraft.min.js"></script> <!-- Get specific version if needed -->
-<!-- FlowCraft is available as a global variable -->
-<script>
-  console.log(FlowCraft.version);
-</script>
-```
-
-*(Note: You might need to adjust the CDN link/npm package name based on your final published package details. The provided `flowcraft.js` code needs a build step to create a distributable version for CDN/npm, e.g., using Rollup or Webpack).*
-
 **Direct Download:**
 
 Download `flowcraft.js` (or a minified version) from the `dist` folder (once created) of this repository and include it in your HTML.
