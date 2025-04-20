@@ -1,8 +1,8 @@
 # FlowCraft.js ✨
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![issues](https://img.shields.io/github/issues/your-username/your-repo-name.svg)](https://github.com/your-username/your-repo-name/issues) <!-- Update link -->
-[![pull requests](https://img.shields.io/github/issues-pr/your-username/your-repo-name.svg)](https://github.com/your-username/your-repo-name/pulls) <!-- Update link -->
+[![issues](https://img.shields.io/github/issues/MariasStory/FlowCraft.js.svg)](https://github.com/MariasStory/FlowCraft.js/issues) <!-- Update link -->
+[![pull requests](https://img.shields.io/github/issues-pr/MariasStory/FlowCraft.js.svg)](https://github.com/MariasStory/FlowCraft.js/pulls) <!-- Update link -->
 
 **Tame complex browser workflows!** FlowCraft.js is a lightweight, zero-dependency JavaScript library for defining, executing, and monitoring sequences of tasks (functions) directly in the browser. Bring structure, observability, and robust error handling to your client-side processes like multi-step forms, API call chains, data processing pipelines, and interactive onboarding flows.
 
@@ -287,14 +287,3 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ---
 
 Made with ❤️ and JavaScript
-```
-
-**Next Steps & Considerations:**
-
-1.  **Replace Placeholders:** Update `your-username/your-repo-name`, `flowcraft-js` (if your npm package name is different), and badge URLs/services as needed.
-2.  **Build Step:** The provided `flowcraft.js` code is a single file. For distribution via NPM/CDN, you'll likely want a build step (using Rollup, Webpack, esbuild, etc.) to create optimized/minified versions (`dist/flowcraft.min.js`, potentially ES module/CommonJS versions). Update the Installation section accordingly.
-3.  **`docs/API.md`:** Create this file and provide a more detailed breakdown of all options and parameters.
-4.  **`LICENSE` file:** Ensure you have a standard `LICENSE` file containing the full MIT license text in your repository root.
-5.  **Examples Folder:** Consider moving the detailed `example.html` usage into an `/examples` directory in the repo for users to explore.
-6.  **Badges:** Use a service like [Shields.io](https://shields.io/) to generate accurate badges for build status (requires CI setup), code coverage, etc.
-7.  **Visuals:** Adding a simple diagram illustrating a flow could further enhance attractiveness.
