@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FlowCraft Example</title>
+    <style>
+        body { font-family: sans-serif; }
+        pre { background-color: #eee; padding: 10px; border-radius: 5px; white-space: pre-wrap; }
+        button { margin: 5px; padding: 8px 12px; }
+        .log { border-left: 3px solid; padding-left: 8px; margin-bottom: 5px; }
+        .log-info { border-color: blue; }
+        .log-warn { border-color: orange; }
+        .log-error { border-color: red; }
+        .log-debug { border-color: grey; }
+    </style>
+</head>
+<body>
+    <h1>FlowCraft.js Example</h1>
+
+    <button id="runSuccessFlow">Run Success Flow (Debug Log)</button>
+    <button id="runErrorFlow">Run Error Handling Flow (Info Log)</button>
+    <button id="runSignalFlow">Run Signal (Pause/Resume) Flow</button>
+    <button id="abortFlow" disabled>Abort Current Flow</button>
+    <button id="resumeFlow" disabled>Resume Paused Flow</button>
+
+    <h2>Output:</h2>
+    <pre id="output"></pre>
+
+    <script src="flowcraft.js"></script>
+    <script>
+        const outputEl = document.getElementById('output');
+        const resumeBtn = document.getElementById('resumeFlow');
+        const abortBtn = document.getElementById('abortFlow');
+        let currentFlowInstance = null;
+
+        // --- Custom Logger ---
+        const customLogger = {
+            log(level, type, ...args) {
+                const div = document.createElement('div');
+                div.classList.add('log', `log-${type}`);
+                div.textContent = `[${level.toUpperCase()}] ${args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ')}`;
+                outputEl.appendChild(div);
+                outputEl.scrollTop = outputEl.scrollHeight; // Auto-scroll
+                console[type](...args); // Also log to console
+            },
+            error: (...args) => customLogger.log('error', 'error', ...args),
+            warn: (...args) => customLogger.log('warn', 'warn', ...args),
+            info: (...args) => customLogger.log('info', 'info', ...args),
+            debug: (...args) => customLogger.log('debug', 'debug', ...args),
+        };
+
+        // --- Helper Delay Function ---
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // --- Task Definitions ---
+
+        // Task 1: Fetch user data (async)
+        async function fetchUserData(context) {
+            customLogger.info('Task 1: Fetching user data...');
+            await delay(500); // Simulate network request
+            context.user = { id: 123, name: 'Alice' };
+            customLogger.info('Task 1: User data fetched:', context.user);
+            return 'User data fetched'; // Optional result
+        }
+
+        // Task 2: Process data (sync)
+        function processUserData(context) {
+            customLogger.info('Task 2: Processing user data...');
+            if (!context.user) throw new Error("User data missing!");
+            context.processed = `Processed: ${context.user.name.toUpperCase()}`;
+            customLogger.info('Task 2: Data processed:', context.processed);
+        }
+
+        // Task 3: Simulate failing task (async)
+        async function maybeFailTask(context, { taskInfo }) {
+            customLogger.info(`Task 3: Attempting risky operation (Attempt ${taskInfo.retries + 1})...`);
+            await delay(300);
+            if (Math.random() > 0.3 && taskInfo.retries < 2) { // Fail sometimes, but succeed on 3rd try
+                throw new Error("Random failure!");
+            }
+            context.riskyResult = "Risky operation succeeded!";
+            customLogger.info('Task 3: Risky operation successful.');
+        }
+
+        // Task 4: Task that signals pause (async)
+        async function waitForUserInput(context, { signal }) {
+            customLogger.info('Task 4: Waiting for user input...');
+            // In a real app, you might show a modal here
+            context.prompt = "Please enter your city:";
+            // Signal PAUSE to the framework
+            signal(FlowCraft.SIGNAL_TYPE.PAUSE, { reason: "Waiting for input" });
+            // The flow will pause AFTER this task function completes.
+            // The value returned here is ignored when pausing.
+            customLogger.info('Task 4: Signaled PAUSE.');
+        }
+
+        // Task 5: Use resumed data (sync)
+        function useResumedData(context) {
+            customLogger.info('Task 5: Using resumed data...');
+            if (!context.userCity) {
+                customLogger.warn('Task 5: No city provided during pause.');
+                context.finalMessage = `User ${context.user?.name || 'N/A'} skipped city input.`;
+            } else {
+                customLogger.info('Task 5: User entered city:', context.userCity);
+                context.finalMessage = `User ${context.user?.name} lives in ${context.userCity}.`;
+            }
+        }
+
+        // Task 6: Final sync task with yield
+        function finalTask(context) {
+            customLogger.info('Task 6: Performing final synchronous step...');
+             // Simulate some sync work
+             let count = 0;
+             for(let i=0; i < 5e6; i++) { count++; } // Small sync work
+             context.finalStepComplete = true;
+            customLogger.info('Task 6: Final step done.');
+        }
+
+
+        // --- Flow Definitions ---
+
+        // 1. Successful Flow
+        FlowCraft.define('SuccessFlow', [
+            fetchUserData,
+            {
+                id: 'process_data_sync', // Give sync task an ID
+                func: processUserData,
+                options: { yieldBefore: true } // Yield before this sync task
+            },
+             {
+                id: 'final_sync',
+                func: finalTask,
+                options: { yieldAfter: true } // Yield after this sync task
+             }
+        ], {
+            logLevel: FlowCraft.LOG_LEVEL.DEBUG, // More verbose logging
+            logger: customLogger
+        });
+
+        // 2. Error Handling Flow
+        FlowCraft.define('ErrorFlow', [
+            fetchUserData,
+            {
+                id: 'risky_task',
+                func: maybeFailTask,
+                options: { maxRetries: 2 } // Task-specific maxRetries override
+                // onError: async (error, context, taskInfo) => { // Task-specific handler example
+                //     customLogger.error(`TASK HANDLER: Caught error in ${taskInfo.id}: ${error.message}`);
+                //     if (taskInfo.retries < 2) return FlowCraft.ERROR_ACTION.RETRY;
+                //     return FlowCraft.ERROR_ACTION.SKIP; // Skip after 2 retries
+                // }
+            },
+            processUserData // This might fail if risky_task is skipped or fails finally
+        ], {
+            logLevel: FlowCraft.LOG_LEVEL.INFO,
+            logger: customLogger,
+            // Flow-level error handler
+            onError: async (error, context, taskInfo) => {
+                customLogger.error(`FLOW HANDLER: Caught error in task '${taskInfo.id}' (Index: ${taskInfo.index}). Error: ${error.message}`);
+                if (taskInfo.id === 'risky_task' && taskInfo.retries < taskInfo.maxRetries) {
+                    customLogger.warn(`FLOW HANDLER: Retrying '${taskInfo.id}'...`);
+                    await delay(500); // Wait before retry
+                    return FlowCraft.ERROR_ACTION.RETRY;
+                } else if (taskInfo.id === 'risky_task') {
+                     customLogger.warn(`FLOW HANDLER: Max retries reached for '${taskInfo.id}'. Skipping.`);
+                     context.risky_task_skipped = true; // Mark context that it was skipped
+                     return FlowCraft.ERROR_ACTION.SKIP;
+                } else {
+                    customLogger.error(`FLOW HANDLER: Unhandled error in '${taskInfo.id}'. Aborting.`);
+                    return FlowCraft.ERROR_ACTION.ABORT;
+                }
+            }
+        });
+
+        // 3. Signal Flow (Pause/Resume)
+        FlowCraft.define('SignalFlow', [
+            fetchUserData,
+            waitForUserInput, // Task signals PAUSE
+            useResumedData,
+            finalTask
+        ], {
+            logLevel: FlowCraft.LOG_LEVEL.INFO,
+            logger: customLogger
+        });
+
+
+        // --- Event Listeners ---
+        function resetUI() {
+            outputEl.innerHTML = '';
+            resumeBtn.disabled = true;
+            abortBtn.disabled = true;
+            currentFlowInstance = null;
+        }
+
+        function handleFlowStart(instance) {
+            resetUI();
+            currentFlowInstance = instance;
+            abortBtn.disabled = false;
+            customLogger.info(`--- Flow ${instance.getState().flowName} Started ---`);
+
+            instance.result
+                .then(finalContext => {
+                    customLogger.info(`--- Flow ${instance.getState().flowName} COMPLETED ---`, 'Final Context:', finalContext);
+                })
+                .catch(error => {
+                     customLogger.error(`--- Flow ${instance.getState().flowName} FAILED/ABORTED ---`, error);
+                })
+                .finally(() => {
+                    const state = instance.getState();
+                     if (state.status !== FlowCraft.STATUS.PAUSED) {
+                         abortBtn.disabled = true;
+                         resumeBtn.disabled = true;
+                         currentFlowInstance = null;
+                         customLogger.info(`--- Flow ${state.flowName} Ended (Status: ${state.status}) ---`);
+                     } else {
+                         // Stay paused - enable resume button
+                         resumeBtn.disabled = false;
+                         customLogger.info(`--- Flow ${state.flowName} Paused --- Signal Data:`, state.signalData);
+                         // You could update UI based on signalData here (e.g., show the prompt)
+                     }
+                });
+        }
+
+
+        document.getElementById('runSuccessFlow').addEventListener('click', () => {
+            handleFlowStart(FlowCraft.run('SuccessFlow', { initialValue: 'start' }));
+        });
+
+        document.getElementById('runErrorFlow').addEventListener('click', () => {
+            handleFlowStart(FlowCraft.run('ErrorFlow'));
+        });
+
+         document.getElementById('runSignalFlow').addEventListener('click', () => {
+            handleFlowStart(FlowCraft.run('SignalFlow'));
+        });
+
+        abortBtn.addEventListener('click', () => {
+            if (currentFlowInstance) {
+                customLogger.warn('--- ABORTING FLOW ---');
+                currentFlowInstance.abort('User clicked abort button');
+            }
+        });
+
+        resumeBtn.addEventListener('click', () => {
+            if (currentFlowInstance && currentFlowInstance.getState().status === FlowCraft.STATUS.PAUSED) {
+                const city = prompt(currentFlowInstance.getState().context.prompt || "Enter data to resume:");
+                customLogger.info(`--- RESUMING FLOW with City: ${city || 'N/A'} ---`);
+                // Pass data back into the context when resuming
+                currentFlowInstance.resume({ userCity: city || null });
+                resumeBtn.disabled = true; // Disable resume until it pauses again (if ever)
+            }
+        });
+
+    </script>
+</body>
+</html>
