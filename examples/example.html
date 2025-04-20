@@ -89,6 +89,7 @@
             // In a real app, you might show a modal here
             context.prompt = "Please enter your city:";
             // Signal PAUSE to the framework
+            resumeBtn.disabled = false;
             signal(FlowCraft.SIGNAL_TYPE.PAUSE, { reason: "Waiting for input" });
             // The flow will pause AFTER this task function completes.
             // The value returned here is ignored when pausing.
